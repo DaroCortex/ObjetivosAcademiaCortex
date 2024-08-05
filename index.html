@@ -39,9 +39,6 @@
         textarea {
             height: 60px;
         }
-        .life-areas {
-            background-color: #e8f5e9;
-        }
         .objectives-3m {
             background-color: #c8e6c9;
         }
@@ -60,47 +57,54 @@
         .objective-input {
             width: calc(100% - 90px);
         }
+        .summary {
+            background-color: #e0f2f1;
+        }
+       .summary-3m {
+            background-color: #c8e6c9;
+        }
+        .summary-6m {
+            background-color: #a5d6a7;
+        }
+        .summary-9m {
+            background-color: #81c784;
+        }
+        .summary h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        #print-button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #print-button:hover {
+            background-color: #45a049;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .summary, .summary * {
+                visibility: visible;
+            }
+            .summary {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+        }
     </style>
 </head>
 <body>
     <h1>Rueda de la Vida y Objetivos</h1>
     
-    <div class="life-areas">
-        <h2>Puntuaciones de las Áreas de la Rueda de la Vida</h2>
-        <table>
-            <tr>
-                <th>Salud</th>
-                <th>Financiera</th>
-                <th>Familiar</th>
-                <th>Pareja</th>
-            </tr>
-            <tr>
-                <td><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-                <td><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-                <td><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-                <td><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-            </tr>
-            <tr>
-                <th>Recreación</th>
-                <th>Profesional</th>
-                <th>Social</th>
-                <th>Espiritual</th>
-            </tr>
-            <tr>
-                <td><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-                <td><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-                <td><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-                <td><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-            </tr>
-            <tr>
-                <th colspan="4">Desarrollo Personal</th>
-            </tr>
-            <tr>
-                <td colspan="4"><input type="number" min="0" max="10" value="0"><button>+</button><button>-</button></td>
-            </tr>
-        </table>
-    </div>
-
     <div class="objectives-3m">
         <h2>Objetivos a 3 Meses</h2>
         <table>
@@ -303,30 +307,73 @@
             </tr>
         </table>
     </div>
+     
+     <div class="summary">
+        <h2>Resumen de Objetivos y Acciones</h2>
+        <div id="summary-content">
+            <!-- El contenido del resumen se generará dinámicamente aquí -->
+        </div>
+    </div>
 
+    <button id="print-button">Imprimir Resumen</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script>
-        // Script para manejar los botones + y - en las puntuaciones
-        document.querySelectorAll('button').forEach(button => {
-            button.addEventListener('click', function() {
-                let input = this.parentNode.querySelector('input[type="number"]');
-                if (this.textContent === '+' && input.value < 10) {
-                    input.value = parseInt(input.value) + 1;
-                } else if (this.textContent === '-' && input.value > 0) {
-                    input.value = parseInt(input.value) - 1;
-                }
+        $(document).ready(function() {
+            $('.objective-input, .time-input, .hypersegmentation textarea').on('input', function() {
+                updateHypersegmentation();
+                updateSummary();
             });
-        });
 
-        // Script para copiar objetivos a la sección de hipersegmentación
-        document.querySelectorAll('.objective-input').forEach(input => {
-            input.addEventListener('input', function() {
-                let period = this.dataset.period;
-                let index = Array.from(this.closest('table').querySelectorAll('.objective-input')).indexOf(this);
-                let targetInput = document.querySelector(`.hypersegmentation [data-period="${period}"].objective-display:nth-of-type(${index + 1})`);
-                if (targetInput) {
-                    targetInput.value = this.value;
-                }
+            function updateHypersegmentation() {
+                ['3m', '6m', '9m'].forEach(period => {
+                    let inputs = $(`.objectives-${period} .objective-input`);
+                    let targets = $(`.hypersegmentation [data-period="${period}"].objective-display`);
+                    inputs.each((index, input) => {
+                        if (targets[index]) {
+                            $(targets[index]).val($(input).val());
+                        }
+                    });
+                });
+            }
+
+            function updateSummary() {
+                let summaryContent = $('#summary-content');
+                summaryContent.empty();
+
+                ['3m', '6m', '9m'].forEach(period => {
+                    let periodText = period === '3m' ? '3 Meses' : period === '6m' ? '6 Meses' : '9 Meses';
+                    let objectives = $(`.objectives-${period} .objective-input`);
+                    let times = $(`.objectives-${period} .time-input`);
+                    let actions = $(`.hypersegmentation h2:contains("Acciones para Objetivos a ${periodText}") + table textarea`);
+
+                    if (objectives.filter(function() { return $(this).val().trim() !== ''; }).length > 0) {
+                        summaryContent.append(`<h3>Objetivos a ${periodText}</h3>`);
+                        let table = $(`<table class="summary-${period}"></table>`);
+                        table.append('<tr><th>Objetivo</th><th>Tiempo a dedicar</th><th>Acciones a realizar</th></tr>');
+
+                        objectives.each((index, objective) => {
+                            if ($(objective).val().trim() !== '') {
+                                let row = $('<tr>');
+                                row.append($('<td>').text($(objective).val() || ''));
+                                row.append($('<td>').text($(times[index]).val() || ''));
+                                row.append($('<td>').text($(actions[index]).val() || ''));
+                                table.append(row);
+                            }
+                        });
+
+                        summaryContent.append(table);
+                    }
+                });
+            }
+
+            $('#print-button').on('click', function() {
+                window.print();
             });
+
+            // Inicializar la página
+            updateHypersegmentation();
+            updateSummary();
         });
     </script>
 </body>
